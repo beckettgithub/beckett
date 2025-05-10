@@ -3,7 +3,7 @@ roblox executor for macos (not finished, does not work, based on source from uwp
 you will need to add luau and make your build script something like 
 ```
 clang++ -dynamiclib \
-    beckettMain.cpp 
+    beckettMain.cpp \
     Luau/Compiler/src/*.cpp \
     Luau/Ast/src/*.cpp \
     Luau/VM/src/*.cpp \
