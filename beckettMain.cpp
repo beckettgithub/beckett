@@ -8,9 +8,7 @@
 #include <mach/mach.h>
 #include <mach/vm_map.h>
 #include <sys/types.h>
-#include "rd_route.h"
 #include <cassert>
-#include "lua_script_strings.h"
 
 // ─── Luau Compiler ─────────────────────────────────────────────────────────────
 #include "Luau/Compiler.h"
@@ -242,6 +240,6 @@ void c_main() {
         rbx_isnil = reinterpret_cast<isnil_t>(slide + ISNIL_ADDR);
         rbx_createtable = reinterpret_cast<createtable_t>(slide + CREATETABLE_ADDR);
         
-        execute_script(init_script); //or whatever you want
+        execute_script("print('hello world')"); //or whatever you want
     }).detach();
 }
