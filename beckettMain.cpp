@@ -100,7 +100,7 @@ std::string compile_luau_to_bytecode(const std::string& source) {
     return Luau::compile(source, o);
 }
 
-struct MyEncoder final : Luau::BytecodeEncoder {
+struct C_BytecodeEncoder final : Luau::BytecodeEncoder {
     void encode(uint32_t* data, size_t count) override {
         for (size_t i = 0; i < count;) {
             uint8_t& op = *reinterpret_cast<uint8_t*>(data + i);
@@ -114,7 +114,7 @@ std::string compileWithCustomEncoder(const std::string& src) {
     Luau::CompileOptions opts;
     opts.debugLevel = 1;
     opts.optimizationLevel = 1;
-    static MyEncoder encoder;
+    static C_BytecodeEncoder encoder;
     return Luau::compile(src, opts, {}, &encoder);
 }
 
