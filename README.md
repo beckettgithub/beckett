@@ -1,5 +1,5 @@
 # beckett
-roblox executor for macos (not finished, does not work, based on source from uwp_executor by spoorloos)
+roblox executor for macos (not finished does not set capabilities. next update will be adding elevate proto, then all of the roblox globals after that then from there it will not be open source)
 you will need to add luau and make your build script something like 
 ```
 clang++ -dynamiclib \
