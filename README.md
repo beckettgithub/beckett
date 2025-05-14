@@ -1,5 +1,6 @@
 # beckett
-roblox executor for macos (not finished does not set capabilities. next update will be adding elevate proto, then all of the roblox globals after that then from there it will not be open source)
+0% sUNC roblox executor for macos 
+You will have to update addresses and pointers. Also you will have to add a function for lua_gc yourself. Do not use for reference this is horrible code.
 you will need to add luau and make your build script something like 
 ```
 clang++ -dynamiclib \
