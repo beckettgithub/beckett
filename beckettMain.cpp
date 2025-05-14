@@ -29,7 +29,7 @@
 // ─── Addresses ────────────────────────────────────────────────────────────────
 static constexpr uint64_t PUSHLSTRING_ADDR     = 0x1026f30da; //"ipairs" -> fourth call
 static constexpr uint64_t LUAULOAD_ADDR     = 0x102714007; //bytecode version mismatch is the string and the func is thewhole thing
-static constexpr uint64_t GETSTATE_ADDR        = 0x100dab1ee;
+static constexpr uint64_t GETSTATE_ADDR        = 0x100dab1ee; 
 static constexpr uint64_t SPAWN_ADDR           = 0x100d054a8;
 static constexpr uint64_t SETTOP_ADDR          = 0x1026f2347;
 static constexpr uint64_t TOSTRING_ADDR        = 0x1026f2a62;
@@ -134,7 +134,7 @@ uintptr_t get_script_context() {
 
     const ptrdiff_t stride = sizeof(uint64_t);
 
-    rbx_print(0, "[DBG] scanning jobs: start=0x%llx, end=0x%llx", jobs_start, jobs_end);
+    rbx_print(0, "[beckett] scanning jobs: start=0x%llx, end=0x%llx", jobs_start, jobs_end);
 
     while (jobs_start < jobs_end) {
         auto job = *reinterpret_cast<scheduler::job**>(jobs_start);
@@ -145,7 +145,7 @@ uintptr_t get_script_context() {
             ? *reinterpret_cast<const char**>((char*)job + 0x28)
             : (const char*)job + 0x19;
 
-        rbx_print(1, "[DBG] job: %s (namePtr=0x%llx) at 0x%llx", namePtr, (uint64_t)namePtr, jobs_start);
+        rbx_print(1, "[beckett] job: %s (namePtr=0x%llx) at 0x%llx", namePtr, (uint64_t)namePtr, jobs_start);
 
         if (strcmp(namePtr, "WaitingHybridScriptsJob") == 0) {
             uint64_t script_context = *reinterpret_cast<uint64_t*>((char*)job + 0x210);
@@ -154,7 +154,7 @@ uintptr_t get_script_context() {
             lua_State* thread = rbx_getstate(script_context, &identity, &dummy);
                     
 
-                    rbx_print(2, "[DBG] candidate_ctx=0x%llx → thread=0x%llx", script_context, thread);
+                    rbx_print(2, "[beckett] candidate_ctx=0x%llx → thread=0x%llx", script_context, thread);
 
                     if (thread != 0) {
                         
@@ -181,17 +181,17 @@ void SetProtoCapabilities(Proto* proto) {
 bool execute_script(const std::string& src) {
     std::string bc = compileWithCustomEncoder(src);
     
-    rbx_print(0, "execute_script start");
+    rbx_print(0, "[beckett] execute_script start");
     uint32_t  identity = 8;
     uintptr_t dummy    = 0;
     if (!newL) {
         uintptr_t ctx = get_script_context();
         base = rbx_getstate(ctx, &identity, &dummy);
-        rbx_print(0, "getstate ran");
+        rbx_print(0, "[beckett] getstate ran");
         rbx_setidentity(base, 8);
         newL = rbx_newthread(base);
         
-        rbx_print(0, "newthread ran");
+        rbx_print(0, "[beckett] newthread ran");
         
     }
     rbx_settop(base, 0);
@@ -202,7 +202,7 @@ bool execute_script(const std::string& src) {
     
 
     if (!L) {
-            rbx_print(3, "Failed to create Lua thread");
+            rbx_print(3, "[beckett] Failed to create Lua thread");
             lua_gc(base, LUA_GCRESTART, 0);
             return false;
     }
@@ -213,22 +213,22 @@ bool execute_script(const std::string& src) {
     rbx_pushcclosure(L, (int(*)(uint64_t))rbx_taskdefer, "task.defer", 0, 0);
     uintptr_t Userdata = (uintptr_t)L->userdata;
     if (!Userdata) {
-            rbx_print(3, "Invalid userdata in thread");
+            rbx_print(3, "[beckett] Invalid userdata in thread");
             lua_gc(base, LUA_GCRESTART, 0);
             return false;
         }
-    rbx_print(0, "Userdata set (but not added to)");
-    rbx_print(1, "[DBG] Userdata: 0x%llx", Userdata);
+    rbx_print(0, "[beckett] Userdata set");
+    rbx_print(1, "[beckett] Userdata: 0x%llx", Userdata);
     uintptr_t capabilitiesPtr = Userdata + 0x48;
     
-    rbx_print(0, "Valid address for userdata");
+    rbx_print(0, "[beckett] Setting identity and adding capabilities");
     rbx_setidentity(L, 8);
-    rbx_print(0, "set identity to 8");
+    rbx_print(0, "[beckett] set identity to 8");
     if (capabilitiesPtr) {
         *(int64_t*)capabilitiesPtr = ~0ULL;
     }
     else {
-        rbx_print(3, "Invalid memory addresses for identity or capabilities");
+        rbx_print(3, "[beckett] Invalid memory addresses for identity or capabilities");
         lua_gc(base, LUA_GCRESTART, 0);
         return false;
     }
@@ -238,38 +238,38 @@ bool execute_script(const std::string& src) {
     if (rbx_luauload(L, "@beckett", bc.data(), bc.size(), 0) != 0) {
         size_t errlen = 0;
         const char* err = rbx_tolstring(L, -1, &errlen);
-        rbx_print(3, "%.*s", (int)errlen, err ? err : "load failed");
+        rbx_print(3, "%.*s", (int)errlen, err ? err : "[beckett] load failed");
         rbx_settop(L, 0);
         lua_gc(base, LUA_GCRESTART, 0);
         return false;
     }
-    rbx_print(0, "luau_load ran");
+    rbx_print(0, "[beckett] luau_load ran");
     Closure* closure = clvalue(rbx_toobject(L, -1));
     if (!closure) {
-            rbx_print(3, "Failed to retrieve closure");
+            rbx_print(3, "[beckett] Failed to retrieve closure");
             lua_gc(base, LUA_GCRESTART, 0);
             return false;
         }
     if (!closure || closure->isC || !closure->l.p) {
-        rbx_print(3, "Skipping SetProtoCapabilities: invalid or C closure");
+        rbx_print(3, "[beckett] Skipping SetProtoCapabilities: invalid or C closure");
     } else {
         SetProtoCapabilities(closure->l.p);
     }
 
-    rbx_print(0, " closure set up");
+    rbx_print(0, "[beckett] closure set up");
     //rbx_setidentity(L, 8);
     int top = lua_gettop(L);
-    rbx_print(0, "[DBG] stack size before spawn = %d", top);
+    rbx_print(0, "[beckett] stack size = %d", top);
     //rbx_spawn(L);
     if (rbx_pcall(L, 1, 0, 0) != LUA_OK) {
         size_t errlen = 0;
         const char* err = rbx_tolstring(L, -1, &errlen);
-        rbx_print(3, "%.*s", (int)errlen, err ? err : "pcall failed");
+        rbx_print(3, "%.*s", (int)errlen, err ? err : "[beckett] pcall failed");
         rbx_settop(L, 0);
         lua_gc(base, LUA_GCRESTART, 0);
         return false;
         }
-    rbx_print(0, "ran pcall");
+    rbx_print(0, "[beckett] ran pcall");
     rbx_settop(L, 0);
     //lua_pop(L, 1);
     lua_gc(L, LUA_GCRESTART, 0);
@@ -297,6 +297,6 @@ void c_main() {
         // finally, run your script
         rbx_pushcclosure = reinterpret_cast<pushcclosure_t>(slide + PUSHCCLOSURE_ADDR);
         rbx_toobject = reinterpret_cast<toobject_t>(slide + TOOBJECT_ADDR);
-        execute_script("print('hello')");
+        execute_script("print('[beckett] hello')");
     }).detach();
 }
